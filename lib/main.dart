@@ -1,15 +1,14 @@
-import 'dart:convert';
-import 'dart:developer';
-
+import 'package:api_app/get_pokemon_list.dart';
+import 'package:api_app/poke_info.dart';
 import 'package:flutter/material.dart';
-import 'package:http/http.dart' as http;
+import 'package:flutter/services.dart';
 
 void main() {
   runApp(const MyApp());
 }
 
 class MyApp extends StatelessWidget {
-  const MyApp({super.key});
+  const MyApp({Key? key}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
@@ -25,7 +24,7 @@ class MyApp extends StatelessWidget {
 }
 
 class MyHomePage extends StatefulWidget {
-  const MyHomePage({super.key, required this.title});
+  const MyHomePage({Key? key, required this.title}) : super(key: key);
   final String title;
 
   @override
@@ -33,126 +32,82 @@ class MyHomePage extends StatefulWidget {
 }
 
 class _MyHomePageState extends State<MyHomePage> {
-  List<String> pokemonNames = [];
-  List<String> pokemonImages = [];
-  List<String> pokemonTypes = [];
+  final controller = TextEditingController();
+  String? errorMessage;
 
-  String url = 'https://pokeapi.co/api/v2/pokemon?limit=300';
-  bool isLoading = true;
+  var getList = GetPokemonList();
+
+  submitForm(int sizeTeam) {
+    Future<List> pokeList = getList.getPokemonList();
+
+    Navigator.push(context, MaterialPageRoute(builder: (context) => PokemonInformationPage(quantity: sizeTeam, pokemonList: pokeList)));
+  }
 
   @override
-  void initState() {
-    super.initState();
-    requisition();
-  }
-
-  formatName(String name){
-    return name[0].toUpperCase()+name.substring(1);
-  }
-
-  void requisition() async {
-    final response = await http.get(Uri.parse(url));
-
-    if (response.statusCode == 200) {
-      Map<String, dynamic> data = jsonDecode(response.body);
-      List<dynamic> pokemonList = data['results'];
-
-      for (var pokemon in pokemonList) {
-        String pokemonName = pokemon['name'].toString();
-
-        pokemonNames.add(formatName(pokemonName));
-        pokemonImages.add('https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${pokemonList.indexOf(pokemon)+1}.png');
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Pokemon Sort'),
+      ),
+      body: Padding(
+        padding: const EdgeInsets.all(8.0),
+        child: Padding(
+          padding: const EdgeInsets.only(top: 10),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              SizedBox(
+                child: TextFormField(
+                  key: const Key('text_form_field'),
+                  controller: controller,
+                  keyboardType: const TextInputType.numberWithOptions(decimal: true), // Define o teclado para números decimais
+                  inputFormatters: [
+                    FilteringTextInputFormatter.allow(RegExp(r'^\d*\d*$')), // Permite apenas números
+                  ],
+                  decoration: InputDecoration(
+                    icon: const Icon(Icons.stay_current_landscape_rounded),
+                    hintText: 'How many Pokemons do you want to get?',
+                    labelText: 'Pokémon Team Size',
+                    errorText: errorMessage,
+                  ),
+                ),
+              ),
+              const SizedBox(height: 6.0),
+              Align(
+                alignment: Alignment.topCenter,
+                child: Padding(
+                  padding: const EdgeInsets.only(top: 16.0),
+                  child: TextButton(
+                    style: ButtonStyle(
+                      backgroundColor: MaterialStateProperty.all<Color>(Colors.red),
+                      foregroundColor: MaterialStateProperty.all<Color>(Colors.white),
+                    ),
+                    onPressed: () {
+                      final sizeTeam = int.tryParse(controller.text);
         
-        // Obtém informações detalhadas sobre o Pokémon para obter os tipos
-        final pokemonDetailResponse = await http.get(Uri.parse(pokemon['url']));
-        if (pokemonDetailResponse.statusCode == 200) {
-          Map<String, dynamic> pokemonDetailData = jsonDecode(pokemonDetailResponse.body);
-          List<dynamic> types = pokemonDetailData['types'];
-          List<String> pokemonTypeNames = [];
-          for (var type in types) {
-            pokemonTypeNames.add(type['type']['name']);
-          }
-          pokemonTypes.add(pokemonTypeNames.toString());
-        } else {
-          log('Failed to load Pokémon detail: ${pokemonDetailResponse.statusCode}');
-          pokemonTypes.add([" "] as String);
-        }
-      }
-    } else {
-      log('Request failed with status: ${response.statusCode}');
-    }
-
-    setState(() {
-      isLoading = false;
-    });
-  }
-
-  @override
-Widget build(BuildContext context) {
-  return Scaffold(
-    appBar: AppBar(
-      title: Text(widget.title),
-    ),
-    body: isLoading
-        ? const Center(child: CircularProgressIndicator())
-        : ListView.builder(
-      itemCount: pokemonNames.length,
-      itemBuilder: (context, index) {
-        Color? backgroundColor = defineColorByType(pokemonTypes[index]); // Cor de fundo do Card
-        Color textColor = backgroundColor == Colors.black ? Colors.white : Colors.black; // Cor do texto
-
-        return Card(
-          color: backgroundColor,
-          child: ListTile(
-            title: Text(
-              pokemonNames[index],
-              style: TextStyle(color: textColor), // Define a cor do texto
-            ),
-            leading: Image.network(pokemonImages[index]),
-            trailing: Text(
-              pokemonTypes[index],
-              style: TextStyle(color: textColor), // Define a cor do texto
-            ),
+                      if (sizeTeam == null || sizeTeam <= 0) {
+                        setState(() {
+                          errorMessage = 'The number must be greater than zero.';
+                        });
+                      } else if (sizeTeam > 1302) {
+                        setState(() {
+                          errorMessage = 'The number must be less than 1303.';
+                        });
+                      } else {
+                        setState(() {
+                          errorMessage = null;
+                        });
+                        submitForm(sizeTeam);
+                      }
+                    },
+                    child: const Text('Generate Team'),
+                  ),
+                ),
+              ),
+            ],
           ),
-        );
-      },
-    ),
-  );
-}
-
-  Color? defineColorByType(String pokemonType) {
-    if (pokemonType.contains('grass')) {
-      return Colors.green[200];
-    } else if (pokemonType.contains('fire')) {
-      return Colors.red[200];
-    } else if (pokemonType.contains('water')) {
-      return Colors.blue[200];
-    } else if (pokemonType.contains('poison')){
-      return Colors.purple[200];
-    } else if (pokemonType.contains('bug')){
-      return Colors.brown[200];
-    } else if (pokemonType.contains('normal')){
-      return Colors.white;
-    } else if (pokemonType.contains('electric')){
-      return Colors.yellow[200];
-    } else if (pokemonType.contains('fairy')){
-      return Colors.pink[200];
-    } else if (pokemonType.contains('ground')){
-      return Colors.brown[200];
-    } else if (pokemonType.contains('psychic')){
-      return Colors.purple[200];
-    } else if (pokemonType.contains('rock')){
-      return Colors.brown[200];
-    } else if (pokemonType.contains('steel')){
-      return Colors.blueGrey[200];
-    } else if (pokemonType.contains('ice')) {
-      return Colors.blue[200];
-    } else if (pokemonType.contains('fighting')) {
-      return Colors.brown[400];
-    } else if (pokemonType.contains('dark') || pokemonType.contains('ghost')) {
-      return Colors.black;
-    }else {
-      return const Color.fromARGB(255, 78, 78, 78); // Cor padrão para tipos desconhecidos
-    }
+        ),
+      ),
+    );
   }
 }
