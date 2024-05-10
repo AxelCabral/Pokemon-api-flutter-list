@@ -11,6 +11,7 @@ class GetPokemonList {
 
     if (response.statusCode == 200) {
       Map<String, dynamic> data = jsonDecode(response.body);
+      
       List<dynamic> pokemonList = data['results'];
 
       return pokemonList;
