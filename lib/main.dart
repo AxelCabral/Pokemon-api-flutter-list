@@ -37,14 +37,14 @@ class _MyHomePageState extends State<MyHomePage> {
 
   var getList = GetPokemonList();
 
-  submitForm(int sizeTeam) {
-    Future<List> pokeList = getList.getPokemonList();
-
+  submitForm(int sizeTeam, Future<List> pokeList) {
     Navigator.push(context, MaterialPageRoute(builder: (context) => PokemonInformationPage(quantity: sizeTeam, pokemonList: pokeList)));
   }
 
   @override
   Widget build(BuildContext context) {
+    Future<List> pokeList = getList.getPokemonList();
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('Pokemon Sort'),
@@ -97,7 +97,7 @@ class _MyHomePageState extends State<MyHomePage> {
                         setState(() {
                           errorMessage = null;
                         });
-                        submitForm(sizeTeam);
+                        submitForm(sizeTeam, pokeList);
                       }
                     },
                     child: const Text('Generate Team'),

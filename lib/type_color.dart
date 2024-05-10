@@ -35,7 +35,7 @@ class BackgroundPokemonTypeDefinition{
     } else if (pokemonType.contains('dark') || pokemonType.contains('ghost')) {
       return Colors.black;
     }else {
-      return Colors.blueGrey; // Cor padrão para tipos desconhecidos
+      return const Color.fromARGB(255, 71, 70, 80); // Cor padrão para tipos desconhecidos
     }
   }
 }
