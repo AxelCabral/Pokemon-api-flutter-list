@@ -1,7 +1,9 @@
-import 'package:api_app/get_pokemon_list.dart';
-import 'package:api_app/poke_info.dart';
+import 'package:api_app/services/fill_pokemon_info.dart';
+import 'package:api_app/pages/poke_info.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+
+import '../models/pokemon.dart';
 
 void main() {
   runApp(const MyApp());
@@ -35,16 +37,20 @@ class _MyHomePageState extends State<MyHomePage> {
   final controller = TextEditingController();
   String? errorMessage;
 
-  var getList = GetPokemonList();
+  var pokemonFillInstance = FillPokemonInformations();
 
-  submitForm(int sizeTeam, Future<List> pokeList) {
-    Navigator.push(context, MaterialPageRoute(builder: (context) => PokemonInformationPage(quantity: sizeTeam, pokemonList: pokeList)));
+  submitForm(int sizeTeam) {
+    Navigator.push(context, MaterialPageRoute(builder: (context) => PokemonInformationPage(quantity: sizeTeam)));
+  }
+
+  @override
+  void initState() {
+    pokemonFillInstance.fillPokemonInformations();
+    super.initState();
   }
 
   @override
   Widget build(BuildContext context) {
-    Future<List> pokeList = getList.getPokemonList();
-
     return Scaffold(
       appBar: AppBar(
         title: const Text('Pokemon Sort'),
@@ -84,20 +90,22 @@ class _MyHomePageState extends State<MyHomePage> {
                     ),
                     onPressed: () {
                       final sizeTeam = int.tryParse(controller.text);
+                      List<Pokemon> pokemons = Pokemon.pokemons.values.toList();
         
                       if (sizeTeam == null || sizeTeam <= 0) {
                         setState(() {
                           errorMessage = 'The number must be greater than zero.';
                         });
-                      } else if (sizeTeam > 1302) {
+                      } else if (sizeTeam > pokemons.length) {
+                        String limit = (pokemons.length+1).toString();
                         setState(() {
-                          errorMessage = 'The number must be less than 1303.';
+                          errorMessage = 'The number must be lower than $limit or try again later. (limit of list: 1302)';
                         });
                       } else {
                         setState(() {
                           errorMessage = null;
                         });
-                        submitForm(sizeTeam, pokeList);
+                        submitForm(sizeTeam);
                       }
                     },
                     child: const Text('Generate Team'),
